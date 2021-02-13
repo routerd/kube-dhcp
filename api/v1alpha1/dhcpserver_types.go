@@ -63,7 +63,8 @@ type NetworkAttachmentDefinitionTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// The specification for the NetworkAttachmentDefinition.
-	// The entire content is copied unchanged into the NAD that gets created from this template.
+	// The entire content is copied into the NAD that gets created from this template.
+	// .spec.config.name will be set to the NetworkAttachmentDefinition name.
 	Spec netv1.NetworkAttachmentDefinitionSpec `json:"spec"`
 }
 

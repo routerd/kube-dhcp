@@ -11,12 +11,8 @@ rules:
   resources:
   - dhcpservers
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - dhcp.routerd.net
@@ -26,3 +22,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - networkattachmentdefinitions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch

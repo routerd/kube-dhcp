@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	netv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -38,7 +39,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
+	_ = netv1.AddToScheme(scheme)
 	_ = dhcpv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }

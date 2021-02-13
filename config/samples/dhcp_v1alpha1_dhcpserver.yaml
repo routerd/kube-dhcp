@@ -13,17 +13,21 @@ spec:
     - 172.20.0.1
     lease: 86400s
 
-  ipv6:
-    subnet: "fd9c:fd74:6b8d:1020::/64"
-    nameServers:
-    - "fd9c:fd74:6b8d:1020::1"
-    range:
-      start: fd9c:fd74:6b8d:1020::5
-      stop: fd9c:fd74:6b8d:1020:ffff:ffff:ffff:ffff
-    lease: 86400s
-    # prefix: "" // prefix delegation
+  # ipv6:
+  #   subnet: "fd9c:fd74:6b8d:1020::/64"
+  #   nameServers:
+  #   - "fd9c:fd74:6b8d:1020::1"
+  #   range:
+  #     start: fd9c:fd74:6b8d:1020::5
+  #     stop: fd9c:fd74:6b8d:1020:ffff:ffff:ffff:ffff
+  #   lease: 86400s
 
-  networkAttachmentTemplate:
+  networkAttachmentDefinitionTemplate:
+    metadata:
+      annotations:
+        my-annotation: test
+      labels:
+        my-label: label
     spec:
       config: >
         {
@@ -34,21 +38,8 @@ spec:
                 "ipam": {
                   "type": "static",
                   "addresses": [
-                    {"address": "172.20.0.2/24"},
+                    {"address": "192.168.250.77/24"}
                   ]
                 }
             }]
         }
-
-
----
-apiVersion: dhcp.routerd.net/v1alpha1
-kind: DHCPLease
-metadata:
-  name: sample-xxx
-  generateName: sample-
-mac: ca:84:31:9d:05:64
-host: notebook.nschiede.redhat.com
-lease:
-- 172.30.0.43
-- fd9c:fd74:6b8d:10:c57f:75a9:163b:d2cc
