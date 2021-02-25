@@ -3,43 +3,61 @@ kind: DHCPServer
 metadata:
   name: sample
 spec:
+  # duration of IP leases.
+  leaseDuration: 1h
+
   ipv4:
     subnet: 172.20.0.0/24
     gateway: 172.20.0.1
-    range:
-      start: 172.20.0.34
-      stop: 172.20.0.240
+    # range:
+    #   start: 172.20.0.34
+    #   stop: 172.20.0.240
     nameServers:
     - 172.20.0.1
-    lease: 86400s
 
-  # ipv6:
-  #   subnet: "fd9c:fd74:6b8d:1020::/64"
-  #   nameServers:
-  #   - "fd9c:fd74:6b8d:1020::1"
-  #   range:
-  #     start: fd9c:fd74:6b8d:1020::5
-  #     stop: fd9c:fd74:6b8d:1020:ffff:ffff:ffff:ffff
-  #   lease: 86400s
+  ipv6:
+    subnet: "fd9c:fd74:6b8d:1020::/64"
+    nameServers:
+    - "fd9c:fd74:6b8d:1020::1"
+    # range:
+    #   start: fd9c:fd74:6b8d:1020::5
+    #   stop: fd9c:fd74:6b8d:1020:ffff:ffff:ffff:ffff
 
-  networkAttachmentDefinitionTemplate:
-    metadata:
-      annotations:
-        my-annotation: test
-      labels:
-        my-label: label
-    spec:
-      config: >
-        {
-            "cniVersion": "0.3.1",
-            "plugins": [{
-                "type": "bridge",
-                "bridge": "br1",
-                "ipam": {
-                  "type": "static",
-                  "addresses": [
-                    {"address": "192.168.250.77/24"}
-                  ]
-                }
-            }]
-        }
+  networkAttachment:
+    type: Bridge
+    bridge:
+      name: br1
+status:
+  ippool:
+    name: sample
+---
+apiVersion: ipam.routerd.net/v1alpha1
+kind: IPPool
+metadata:
+  name: sample
+  ownerReferences:
+  - kind: DHCPServer
+    name: sample
+spec:
+
+  # networkAttachmentDefinitionTemplate:
+  #   metadata:
+  #     annotations:
+  #       my-annotation: test
+  #     labels:
+  #       my-label: label
+  #   spec:
+  #     config: >
+  #       {
+  #           "cniVersion": "0.3.1",
+  #           "plugins": [{
+  #               "type": "bridge",
+  #               "bridge": "br1",
+  #               "ipam": {
+  #                 "type": "static",
+  #                 "addresses": [
+  #                   {"address": "{{ .Prefix }}"}
+  #                 ]
+  #               }
+  #           }]
+  #       }

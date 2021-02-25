@@ -49,63 +49,66 @@ spec:
                   gateway:
                     description: Gateway IPv4 address of the router for this subnet.
                     type: string
-                  lease:
-                    description: Lease timeout duration.
+                  nameServers:
+                    description: NameServers to point clients to.
+                    items:
+                      type: string
+                    type: array
+                  subnet:
+                    description: Subnet CIDR this DHCP Server should operate on.
+                    type: string
+                required:
+                - gateway
+                - subnet
+                type: object
+              ipv6:
+                description: DHCP IPv6 specific settings.
+                properties:
+                  gateway:
+                    description: Gateway IPv4 address of the router for this subnet.
                     type: string
                   nameServers:
                     description: NameServers to point clients to.
                     items:
                       type: string
                     type: array
-                  range:
-                    description: Range for automatic address assignment.
-                    properties:
-                      start:
-                        description: Start IP - first IP of the range (included)
-                        type: string
-                      stop:
-                        description: Stop IP - last IP of the range (included)
-                        type: string
-                    required:
-                    - start
-                    - stop
-                    type: object
                   subnet:
                     description: Subnet CIDR this DHCP Server should operate on.
                     type: string
                 required:
                 - gateway
-                - lease
                 - subnet
                 type: object
-              ipv6:
-                description: DHCP IPv6 specific settings.
-                type: object
-              networkAttachmentDefinitionTemplate:
-                description: NetworkAttachmentDefinition to create for this DHCP Server
-                  deployment.
+              leaseDuration:
+                description: Lease timeout duration.
+                type: string
+              networkAttachment:
+                description: Configures how the DHCP Server is attached to a network.
                 properties:
-                  metadata:
-                    description: May contain labels and annotations that will be copied
-                      into the PVC when creating it. No other fields are allowed and
-                      will be rejected during validation.
-                    type: object
-                  spec:
-                    description: The specification for the NetworkAttachmentDefinition.
-                      The entire content is copied into the NAD that gets created
-                      from this template. .spec.config.name will be set to the NetworkAttachmentDefinition
-                      name.
+                  bridge:
+                    description: Bridge attachment configuration.
                     properties:
-                      config:
+                      name:
+                        description: Name of the bridge device to bind to.
                         type: string
                     required:
-                    - config
+                    - name
                     type: object
+                  type:
+                    default: Bridge
+                    description: "Type of network attachment for the DHCP server.
+                      Supported Types: \"Bridge\" \n Bridge uses multus and creates
+                      a NetworkAttachmentDefinition pointing to the given linux bridge."
+                    enum:
+                    - Bridge
+                    type: string
                 required:
-                - spec
+                - bridge
+                - type
                 type: object
             required:
-            - networkAttachmentDefinitionTemplate
+            - leaseDuration
+            - networkAttachment
             type: object
           status:
             description: DHCPServerStatus defines the observed state of DHCPServer
@@ -181,6 +184,14 @@ spec:
                   - type
                   type: object
                 type: array
+              ippool:
+                description: References the IPPool object for this DHCP server.
+                properties:
+                  name:
+                    type: string
+                required:
+                - name
+                type: object
               observedGeneration:
                 description: The most recent generation observed by the controller.
                 format: int64

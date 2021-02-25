@@ -20,6 +20,7 @@ export CGO_ENABLED:=0
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 SHORT_SHA=$(shell git rev-parse --short HEAD)
 VERSION?=${BRANCH}-${SHORT_SHA}
+IMAGE_ORG?=quay.io/routerd
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -32,6 +33,18 @@ endif
 # Compile
 # -------
 
+all: \
+	bin/linux_amd64/kube-dhcp-operator \
+	bin/linux_amd64/kube-dhcp
+
+bin/linux_amd64/%: GOARGS = GOOS=linux GOARCH=amd64
+
+bin/%: FORCE
+	$(eval COMPONENT=$(shell basename $*))
+	$(GOARGS) go build -ldflags "-w $(LD_FLAGS)" -o bin/$* cmd/$(COMPONENT)/main.go
+
+FORCE:
+
 clean:
 	rm -rf bin/$*
 .PHONY: clean
@@ -41,8 +54,8 @@ clean:
 # ----------
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
-	go run ./main.go
+run-operator: generate fmt vet manifests
+	go run ./cmd/kube-dhcp-operator/main.go
 
 # Install CRDs into a cluster
 install: manifests
@@ -116,3 +129,19 @@ pre-commit-install:
 	@echo "installing pre-commit hooks using https://pre-commit.com/"
 	@pre-commit install
 .PHONY: pre-commit-install
+
+# ----------------
+# Container Images
+# ----------------
+
+.SECONDEXPANSION:
+build-image-%: bin/linux_amd64/$$*
+	@mkdir -p bin/image/$*
+	@mv bin/linux_amd64/$* bin/image/$*
+	@cp -a config/docker/$*.Dockerfile bin/image/$*/Dockerfile
+	@echo building ${IMAGE_ORG}/$*:${VERSION}
+	@docker build -t ${IMAGE_ORG}/$*:${VERSION} bin/image/$*
+
+push-image-%: build-image-$$*
+	@docker push ${IMAGE_ORG}/$*:${VERSION}
+	@echo pushed ${IMAGE_ORG}/$*:${VERSION}

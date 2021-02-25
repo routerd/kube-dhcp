@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	dhcpv1alpha1 "routerd.net/kube-dhcp/api/v1alpha1"
-	"routerd.net/kube-dhcp/controllers"
+	"routerd.net/kube-dhcp/internal/controllers"
 	// +kubebuilder:scaffold:imports
 )
 

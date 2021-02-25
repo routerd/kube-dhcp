@@ -1,0 +1,130 @@
+apiVersion: dhcp.routerd.net/v1alpha1
+kind: DHCPServer
+metadata:
+  name: sample
+spec:
+  pool:
+    # reference sample IP pool
+    name: sample
+
+  ipv4:
+    subnet: 172.20.0.0/24
+    gateway: 172.20.0.1
+    range:
+      start: 172.20.0.34
+      stop: 172.20.0.240
+    nameServers:
+    - 172.20.0.1
+    lease: 86400s
+
+  ipv6:
+    subnet: "fd9c:fd74:6b8d:1020::/64"
+    nameServers:
+    - "fd9c:fd74:6b8d:1020::1"
+    range:
+      start: fd9c:fd74:6b8d:1020::5
+      stop: fd9c:fd74:6b8d:1020:ffff:ffff:ffff:ffff
+    lease: 86400s
+
+  networkAttachmentDefinitionTemplate:
+    metadata:
+      annotations:
+        my-annotation: test
+      labels:
+        my-label: label
+    spec:
+      config: >
+        {
+            "cniVersion": "0.3.1",
+            "plugins": [{
+                "type": "bridge",
+                "bridge": "br1",
+                "ipam": {
+                  "type": "static",
+                  "addresses": [
+                    {"address": "192.168.250.77/24"}
+                  ]
+                }
+            }]
+        }
+status:
+  phase: Ready
+  conditions:
+  - type: Ready
+    status: "True"
+    reason: "DeploymentReady"
+  - type: IPLeased
+    status: "True"
+    reason: "IPLeased"
+    message: "leased 172.20.0.2 and fd9c:fd74:6b8d:1020::2 from sample pool"
+---
+apiVersion: ipam.routerd.net/v1alpha1
+kind: IPPool
+metadata:
+  name: sample
+spec:
+  ipv4:
+    cidr: 172.20.0.0/24
+  ipv6:
+    cidr: fd9c:fd74:6b8d:1020::/64
+status:
+  size: 253
+  leases: 12
+---
+apiVersion: ipam.routerd.net/v1alpha1
+kind: IPLease
+metadata:
+  name: sample-gateway
+spec:
+  pool:
+    name: sample
+  static: # optional
+    ip: 172.20.0.1/24
+status:
+  phase: Bound
+  conditions:
+  - type: Bound
+    status: "True"
+  cidr: 172.20.0.1/32
+---
+apiVersion: ipam.routerd.net/v1alpha1
+kind: IPLease
+metadata:
+  name: sample-dhcp
+spec:
+  pool:
+    name: sample
+status:
+  phase: Bound
+  conditions:
+  - type: Bound
+    status: "True"
+  cidr: 172.20.0.2/32
+---
+apiVersion: dhcp.routerd.net/v1alpha1
+kind: DHCPLease
+metadata:
+  name: sample-xxx
+spec:
+  # IEEE 802 MAC-48, EUI-48, EUI-64,
+  # or a 20-octet IP over InfiniBand link-layer address
+  hardwareAddress: ca:84:31:9d:05:64
+  host: notebook.nschiede.redhat.com
+
+  dhcpServer:
+    # references the DHCP Server responsible for this lease
+    name: sample
+
+status:
+  phase: Bound
+  conditions:
+  - type: Bound
+    status: "True"
+    reason: ""
+    message: ""
+  renewedTime: "2021-02-13T14:27:51Z"
+  leases:
+  - ip: 172.30.0.43
+    expireTime: "2021-02-13T14:27:51Z"
+  - ip: fd9c:fd74:6b8d:10:c57f:75a9:163b:d2cc
+    expireTime: "2021-02-13T14:27:51Z"

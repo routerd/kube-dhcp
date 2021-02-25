@@ -17,18 +17,21 @@ limitations under the License.
 package v1alpha1
 
 import (
-	netv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DHCPServerSpec defines the desired state of DHCPServer.
 type DHCPServerSpec struct {
+	// Lease timeout duration.
+	LeaseDuration metav1.Duration `json:"leaseDuration"`
+
 	// DHCP IPv4 specific settings.
 	IPv4 *DHCPServerIPv4 `json:"ipv4,omitempty"`
 	// DHCP IPv6 specific settings.
 	IPv6 *DHCPServerIPv6 `json:"ipv6,omitempty"`
-	// NetworkAttachmentDefinition to create for this DHCP Server deployment.
-	NetworkAttachmentDefinitionTemplate NetworkAttachmentDefinitionTemplate `json:"networkAttachmentDefinitionTemplate"`
+
+	// Configures how the DHCP Server is attached to a network.
+	NetworkAttachment NetworkAttachment `json:"networkAttachment"`
 }
 
 // DHCP Server Settings for IPv4.
@@ -39,34 +42,47 @@ type DHCPServerIPv4 struct {
 	Gateway string `json:"gateway"`
 	// NameServers to point clients to.
 	NameServers []string `json:"nameServers,omitempty"`
-	// Range for automatic address assignment.
-	Range *IPRange `json:"range,omitempty"`
-	// Lease timeout duration.
-	Lease metav1.Duration `json:"lease"`
 }
 
 // DHCP Server Settings for IPv6.
-type DHCPServerIPv6 struct{}
-
-// IP Range from to.
-type IPRange struct {
-	// Start IP - first IP of the range (included)
-	Start string `json:"start"`
-	// Stop IP - last IP of the range (included)
-	Stop string `json:"stop"`
+type DHCPServerIPv6 struct {
+	// Subnet CIDR this DHCP Server should operate on.
+	Subnet string `json:"subnet"`
+	// Gateway IPv4 address of the router for this subnet.
+	Gateway string `json:"gateway"`
+	// NameServers to point clients to.
+	NameServers []string `json:"nameServers,omitempty"`
 }
 
-type NetworkAttachmentDefinitionTemplate struct {
-	// May contain labels and annotations that will be copied into the PVC
-	// when creating it. No other fields are allowed and will be rejected during
-	// validation.
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+type NetworkAttachmentType string
 
-	// The specification for the NetworkAttachmentDefinition.
-	// The entire content is copied into the NAD that gets created from this template.
-	// .spec.config.name will be set to the NetworkAttachmentDefinition name.
-	Spec netv1.NetworkAttachmentDefinitionSpec `json:"spec"`
+const (
+	Bridge NetworkAttachmentType = "Bridge"
+)
+
+type NetworkAttachment struct {
+	// Type of network attachment for the DHCP server.
+	// Supported Types: "Bridge"
+	//
+	// Bridge uses multus and creates a NetworkAttachmentDefinition
+	// pointing to the given linux bridge.
+	// +kubebuilder:default="Bridge"
+	// +kubebuilder:validation:Enum=Bridge
+	Type NetworkAttachmentType `json:"type"`
+	// Bridge attachment configuration.
+	Bridge *NetworkAttachmentBridge `json:"bridge"`
 }
+
+// NetworkAttachment settings for type="Bridge"
+type NetworkAttachmentBridge struct {
+	// Name of the bridge device to bind to.
+	Name string `json:"name"`
+}
+
+const (
+	// Available condition indicates whether the DHCP Server is alive and well.
+	Available = "Available"
+)
 
 // DHCPServerStatus defines the observed state of DHCPServer
 type DHCPServerStatus struct {
@@ -76,6 +92,14 @@ type DHCPServerStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// Human readable status aggregated from conditions.
 	Phase string `json:"phase,omitempty"`
+	// References the IPPool object for this DHCP server.
+	IPPool *LocalObjectReference `json:"ippool,omitempty"`
+	// Addresses the DHCP server is available at.
+	Addresses []string `json:"addresses,omitempty"`
+}
+
+type LocalObjectReference struct {
+	Name string `json:"name"`
 }
 
 // DHCPServer is the Schema for the dhcpservers API
