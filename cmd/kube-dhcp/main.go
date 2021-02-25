@@ -27,6 +27,7 @@ import (
 
 	dhcpv1alpha1 "routerd.net/kube-dhcp/api/v1alpha1"
 	"routerd.net/kube-dhcp/internal/server"
+	ipamv1alpha1 "routerd.net/kube-ipam/api/v1alpha1"
 )
 
 var (
@@ -34,11 +35,10 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-const dhcpInterfaceNameEnvVar = "DHCP_INTERFACE_NAME"
-
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = dhcpv1alpha1.AddToScheme(scheme)
+	_ = ipamv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

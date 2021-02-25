@@ -55,7 +55,7 @@ clean:
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run-operator: generate fmt vet manifests
-	go run ./cmd/kube-dhcp-operator/main.go
+	go run ./cmd/kube-dhcp-operator/main.go --metrics-addr=0
 
 # Install CRDs into a cluster
 install: manifests

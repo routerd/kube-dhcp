@@ -29,6 +29,7 @@ import (
 
 	dhcpv1alpha1 "routerd.net/kube-dhcp/api/v1alpha1"
 	"routerd.net/kube-dhcp/internal/controllers"
+	ipamv1alpha1 "routerd.net/kube-ipam/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -41,6 +42,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = netv1.AddToScheme(scheme)
 	_ = dhcpv1alpha1.AddToScheme(scheme)
+	_ = ipamv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

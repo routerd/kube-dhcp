@@ -19,6 +19,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 
 	netv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,7 +51,7 @@ func staticGatewayIPLease(
 
 	iplease := &ipamv1alpha1.IPLease{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ippool.Name,
+			Name:      ippool.Name + "-gateway",
 			Namespace: ippool.Namespace,
 			Labels:    map[string]string{},
 		},
@@ -78,7 +79,7 @@ func dhcpIPLease(
 ) (*ipamv1alpha1.IPLease, error) {
 	iplease := &ipamv1alpha1.IPLease{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ippool.Name,
+			Name:      ippool.Name + "-dhcp",
 			Namespace: ippool.Namespace,
 			Labels:    map[string]string{},
 		},
@@ -111,9 +112,30 @@ func networkAttachmentDefinition(
 		return nil, fmt.Errorf("DHCP IPLease is not bound")
 	}
 
+	var (
+		ipv4Mask net.IPMask
+		ipv6Mask net.IPMask
+	)
+	if dhcpServer.Spec.IPv4 != nil {
+		_, ipv4Net, _ := net.ParseCIDR(dhcpServer.Spec.IPv4.Subnet)
+		ipv4Mask = ipv4Net.Mask
+	}
+	if dhcpServer.Spec.IPv6 != nil {
+		_, ipv6Net, _ := net.ParseCIDR(dhcpServer.Spec.IPv6.Subnet)
+		ipv6Mask = ipv6Net.Mask
+	}
+
 	var addresses []map[string]string
 	for _, addr := range dhcpIPLease.Status.Addresses {
-		addresses = append(addresses, map[string]string{"address": addr})
+		ip := net.ParseIP(addr)
+		if ip.To4() != nil {
+			// ipv4
+			addresses = append(addresses, map[string]string{
+				"address": (&net.IPNet{IP: ip, Mask: ipv4Mask}).String()})
+		} else {
+			addresses = append(addresses, map[string]string{
+				"address": (&net.IPNet{IP: ip, Mask: ipv6Mask}).String()})
+		}
 	}
 	nadConfigJSON := map[string]interface{}{
 		"cniVersion": "0.3.1",
@@ -185,7 +207,7 @@ func deployment(
 						{
 							ImagePullPolicy: corev1.PullAlways,
 							Name:            "dhcp-server",
-							Image:           "quay.io/routerd/kube-dhcp:implementation-2ac7d23",
+							Image:           "quay.io/routerd/kube-dhcp:implementation-8027e69",
 							Env: []corev1.EnvVar{
 								{Name: "DHCP_BIND_INTERFACE", Value: "net1"},
 								{Name: "DHCP_SERVER_NAME", Value: dhcpServer.Name},

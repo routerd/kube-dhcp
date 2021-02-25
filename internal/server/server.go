@@ -18,9 +18,10 @@ package server
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/base32"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	dhcpv1alpha1 "routerd.net/kube-dhcp/api/v1alpha1"
 	ipamv1alpha1 "routerd.net/kube-ipam/api/v1alpha1"
@@ -84,6 +86,11 @@ func (s *Server) dhcpv4Handler(conn net.PacketConn, peer net.Addr, req *dhcpv4.D
 
 	ctx := context.Background()
 	leaseCtx := leaseContext{}
+	hostbytes := req.Options.Get(dhcpv4.OptionHostName)
+	if len(hostbytes) > 0 {
+		leaseCtx.Hostname = string(hostbytes)
+	}
+
 	dhcpResp, err := s.response(ctx, req.ClientHWAddr, leaseCtx)
 	if err != nil {
 		log.Error(err, "handling request")
@@ -208,8 +215,8 @@ func (s *Server) response(
 }
 
 const (
-	dhcpMACLabel  = "dhcp.routerd.net/mac"
-	dhcpHostLabel = "dhcp.routerd.net/host"
+	dhcpMACAnnotation  = "dhcp.routerd.net/mac"
+	dhcpHostAnnotation = "dhcp.routerd.net/host"
 )
 
 func (s *Server) ensureLease(
@@ -218,14 +225,16 @@ func (s *Server) ensureLease(
 	mac net.HardwareAddr,
 	lctx leaseContext,
 ) (*ipamv1alpha1.IPLease, error) {
-	leaseName := base64.StdEncoding.
-		EncodeToString(mac)
+	leaseName := strings.ToLower(
+		base32.StdEncoding.EncodeToString(mac))
+	leaseName = strings.Trim(leaseName, "=")
+
 	lease := &ipamv1alpha1.IPLease{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      leaseName,
+			Name:      dhcpServer.Name + "-" + leaseName,
 			Namespace: s.c.Namespace,
-			Labels: map[string]string{
-				dhcpMACLabel: mac.String(),
+			Annotations: map[string]string{
+				dhcpMACAnnotation: mac.String(),
 			},
 		},
 		Spec: ipamv1alpha1.IPLeaseSpec{
@@ -235,7 +244,11 @@ func (s *Server) ensureLease(
 		},
 	}
 	if len(lctx.Hostname) > 0 {
-		lease.Labels[dhcpHostLabel] = lctx.Hostname
+		lease.Annotations[dhcpHostAnnotation] = lctx.Hostname
+	}
+	if err := controllerutil.SetOwnerReference(
+		dhcpServer, lease, s.c.Client.Scheme()); err != nil {
+		return nil, err
 	}
 
 	existingLease := &ipamv1alpha1.IPLease{}

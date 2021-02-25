@@ -20,6 +20,12 @@ spec:
     - jsonPath: .status.phase
       name: Status
       type: string
+    - jsonPath: .status.addresses
+      name: Addresses
+      type: string
+    - jsonPath: .status.ippool.name
+      name: Pool
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -113,6 +119,11 @@ spec:
           status:
             description: DHCPServerStatus defines the observed state of DHCPServer
             properties:
+              addresses:
+                description: Addresses the DHCP server is available at.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions is a list of status conditions ths object
                   is in.
